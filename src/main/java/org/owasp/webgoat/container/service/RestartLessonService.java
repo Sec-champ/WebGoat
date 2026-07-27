@@ -5,13 +5,12 @@
 package org.owasp.webgoat.container.service;
 
 import java.util.List;
-import java.util.function.Function;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.flywaydb.core.Flyway;
 import org.owasp.webgoat.container.CurrentUser;
 import org.owasp.webgoat.container.lessons.Initializable;
 import org.owasp.webgoat.container.lessons.LessonName;
+import org.owasp.webgoat.container.lessons.LessonSchemaService;
 import org.owasp.webgoat.container.session.Course;
 import org.owasp.webgoat.container.users.UserProgress;
 import org.owasp.webgoat.container.users.UserProgressRepository;
@@ -29,7 +28,7 @@ public class RestartLessonService {
 
   private final Course course;
   private final UserProgressRepository userTrackerRepository;
-  private final Function<String, Flyway> flywayLessons;
+  private final LessonSchemaService lessonSchemaService;
   private final List<Initializable> lessonsToInitialize;
 
   @GetMapping(path = "/service/restartlesson.mvc/{lesson}")
@@ -42,9 +41,7 @@ public class RestartLessonService {
     userTracker.reset(lesson);
     userTrackerRepository.save(userTracker);
 
-    var flyway = flywayLessons.apply(user.getUsername());
-    flyway.clean();
-    flyway.migrate();
+    lessonSchemaService.resetSchema(user.getUsername());
 
     lessonsToInitialize.forEach(i -> i.initialize(user));
   }
