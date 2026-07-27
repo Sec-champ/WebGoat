@@ -69,6 +69,21 @@ public class SqlInjectionLesson6aTest extends LessonTest {
   }
 
   @Test
+  public void containerSchemaCannotBeRead() throws Exception {
+    mockMvc
+        .perform(
+            MockMvcRequestBuilders.post("/SqlInjectionAdvanced/attack6a")
+                .param(
+                    "userid_6a",
+                    "Smith' union select 1,username,password,role,username,username,1 from"
+                        + " CONTAINER.web_goat_user --"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.lessonCompleted", is(false)))
+        .andExpect(
+            jsonPath("$.output", containsString("user lacks privilege or object not found")));
+  }
+
+  @Test
   public void noResultsReturned() throws Exception {
     mockMvc
         .perform(

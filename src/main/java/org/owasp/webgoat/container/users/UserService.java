@@ -5,11 +5,9 @@
 package org.owasp.webgoat.container.users;
 
 import java.util.List;
-import java.util.function.Function;
 import lombok.AllArgsConstructor;
-import org.flywaydb.core.Flyway;
 import org.owasp.webgoat.container.lessons.Initializable;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.owasp.webgoat.container.lessons.LessonSchemaService;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -24,8 +22,7 @@ public class UserService implements UserDetailsService {
 
   private final UserRepository userRepository;
   private final UserProgressRepository userTrackerRepository;
-  private final JdbcTemplate jdbcTemplate;
-  private final Function<String, Flyway> flywayLessons;
+  private final LessonSchemaService lessonSchemaService;
   private final List<Initializable> lessonInitializables;
 
   @Override
@@ -35,6 +32,9 @@ public class UserService implements UserDetailsService {
       throw new UsernameNotFoundException("User not found");
     } else {
       webGoatUser.createUser();
+      // users created before the lesson schema was owned by a dedicated database user still
+      // have a schema owned by the admin user
+      lessonSchemaService.createSchema(username);
       // TODO maybe better to use an event to initialize lessons to keep dependencies low
       lessonInitializables.forEach(l -> l.initialize(webGoatUser));
     }
@@ -54,8 +54,7 @@ public class UserService implements UserDetailsService {
   }
 
   private void createLessonsForUser(WebGoatUser webGoatUser) {
-    jdbcTemplate.execute("CREATE SCHEMA \"" + webGoatUser.getUsername() + "\" authorization dba");
-    flywayLessons.apply(webGoatUser.getUsername()).migrate();
+    lessonSchemaService.createSchema(webGoatUser.getUsername());
   }
 
   public List<WebGoatUser> getAllUsers() {

@@ -8,14 +8,13 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.function.Function;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.owasp.webgoat.WithWebGoatUser;
 import org.owasp.webgoat.container.WebGoat;
 import org.owasp.webgoat.container.i18n.Language;
 import org.owasp.webgoat.container.i18n.PluginMessages;
 import org.owasp.webgoat.container.lessons.Initializable;
+import org.owasp.webgoat.container.lessons.LessonSchemaService;
 import org.owasp.webgoat.container.users.WebGoatUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,7 +45,7 @@ public abstract class LessonTest {
   protected MockMvc mockMvc;
   @Autowired protected WebApplicationContext wac;
   @Autowired protected PluginMessages messages;
-  @Autowired private Function<String, Flyway> flywayLessons;
+  @Autowired private LessonSchemaService lessonSchemaService;
   @Autowired private List<Initializable> lessonInitializers;
   @MockBean private Language language;
 
@@ -60,7 +59,7 @@ public abstract class LessonTest {
     when(language.getLocale()).thenReturn(Locale.getDefault());
     WebGoatUser user =
         (WebGoatUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-    flywayLessons.apply(user.getUsername()).migrate();
+    lessonSchemaService.createSchema(user.getUsername());
     lessonInitializers.forEach(init -> init.initialize(user));
     this.mockMvc = MockMvcBuilders.webAppContextSetup(this.wac).build();
   }
